@@ -1,0 +1,14 @@
+[
+    {
+        "ParameterKey": "ProjectName",
+        "ParameterValue": "HighAvailable-WebApp"
+    },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t2.medium"
+  },
+  {
+    "ParameterKey": "InstanceAmi",
+    "ParameterValue": "ami-005de95e8ff495156"
+  }
+]

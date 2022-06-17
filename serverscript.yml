@@ -1,0 +1,206 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: High availability web app deployment.
+Parameters:
+  ProjectName:
+    Description: "Will be prefixed to all resources names."
+    Type: String
+  InstanceType:
+    Description: EC2 istance type to launch.
+    Type: String
+  InstanceAmi:
+    Description: Istance amazon machine image.
+    Type: String
+Resources:
+  
+  SGLoadBalancer:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http connections to the load balancer
+      VpcId:
+        Fn::ImportValue: !Sub "${ProjectName}-VpcId"
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-SG-LB
+  
+  SGWebApp:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for the web application
+      VpcId:
+        Fn::ImportValue: !Sub "${ProjectName}-VpcId"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0 #DA SISTEMARE
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-SG-LB
+  
+  AutoScalingGroupLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: false
+      ImageId: !Ref InstanceAmi
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile:
+        Fn::ImportValue: !Sub ${ProjectName}-InstanceProfile
+      SecurityGroups:
+        - !Ref SGWebApp
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: true
+            VolumeSize: 10
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update -y
+          apt-get install unzip awscli -y
+          apt-get install apache2 -y
+          systemctl start apache2.service
+          cd /var/www/html
+          aws s3 cp s3://otarufriday/udacity.zip .
+          unzip -o udacity.zip
+  
+  
+  ##########################################################
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      LaunchConfigurationName: !Ref AutoScalingGroupLaunchConfig
+      AutoScalingGroupName: "ASG WebApp"
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub ${ProjectName}-PrivSubNets
+      MinSize: 4
+      MaxSize: 6
+      DesiredCapacity: 4
+      TargetGroupARNs:
+        - !Ref LBTargetGroup
+
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-ASGWebApp
+          PropagateAtLaunch: True
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true
+  # LOAD BALANCER CONFIGURATION
+  LoadBalancerWebApp:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      SecurityGroups:
+        - !Ref SGLoadBalancer
+      Subnets:
+        - Fn::ImportValue: !Sub "${ProjectName}-Pub1SubNet"
+        - Fn::ImportValue: !Sub "${ProjectName}-Pub2SubNet"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-LoadBalancer"
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancerWebApp
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref LBTargetGroup
+      Port: 80
+      Protocol: HTTP
+  LBListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref LBTargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values: [/]
+      ListenerArn: !Ref LoadBalancerListener
+      Priority: 1
+  LBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 8
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      VpcId:
+        Fn::ImportValue: !Sub "${ProjectName}-VpcId"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-LBTargetGroup"
+  #######################  Scaling Policies
+  UpscalePolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      Cooldown: 300
+      ScalingAdjustment: 1
+  DownscalePolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      Cooldown: 300
+      ScalingAdjustment: -1
+  AlarmHighCPUUsage:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "HighCpuUsage"
+      AlarmDescription: Upscaling when cpu usage is over threshold.
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref UpscalePolicy
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroup
+  AlarmLowCPUUsage:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "LowCpuUsage"
+      AlarmDescription: Downscaling when cpu usage is under threshold.
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: LessThanThreshold
+      AlarmActions:
+        - !Ref DownscalePolicy
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroup
+Outputs:
+  URL:
+    Description: DNS of the LoadBalancer
+    Value: !Sub "http://${LoadBalancerWebApp.DNSName}"
+    Export:
+      Name: !Sub "${ProjectName}-URL"
