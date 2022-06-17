@@ -75,7 +75,7 @@ Resources:
           apt-get install apache2 -y
           systemctl start apache2.service
           cd /var/www/html
-          aws s3 cp s3://udagramS3Bucket/udacity.zip .
+          aws s3 cp s3://udagrams3bucket/udacity.zip .
           unzip -o udacity.zip
   
   
