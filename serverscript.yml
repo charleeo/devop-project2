@@ -12,7 +12,7 @@ Parameters:
     Type: String
 Resources:
   
-  SGLoadBalancer:
+  SecurityGroupLoadBalancer:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow http connections to the load balancer
@@ -32,7 +32,7 @@ Resources:
         - Key: Name
           Value: !Sub ${ProjectName}-SG-LB
   
-  SGWebApp:
+  UdagramUdacitySecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for the web application
@@ -61,7 +61,7 @@ Resources:
       IamInstanceProfile:
         Fn::ImportValue: !Sub ${ProjectName}-InstanceProfile
       SecurityGroups:
-        - !Ref SGWebApp
+        - !Ref UdagramUdacitySecurityGroup
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"
           Ebs:
@@ -75,7 +75,7 @@ Resources:
           apt-get install apache2 -y
           systemctl start apache2.service
           cd /var/www/html
-          aws s3 cp s3://otarufriday/udacity.zip .
+          aws s3 cp s3://udagramS3Bucket/udacity.zip .
           unzip -o udacity.zip
   
   
@@ -86,7 +86,7 @@ Resources:
       LaunchConfigurationName: !Ref AutoScalingGroupLaunchConfig
       AutoScalingGroupName: "ASG WebApp"
       VPCZoneIdentifier:
-        - Fn::ImportValue: !Sub ${ProjectName}-PrivSubNets
+        - Fn::ImportValue: !Sub ${ProjectName}-PrivateSubNets
       MinSize: 4
       MaxSize: 6
       DesiredCapacity: 4
@@ -95,7 +95,7 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: !Sub ${ProjectName}-ASGWebApp
+          Value: !Sub ${ProjectName}-AUdagramUdacitySecurityGroup
           PropagateAtLaunch: True
     UpdatePolicy:
       AutoScalingReplacingUpdate:
@@ -105,10 +105,10 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       SecurityGroups:
-        - !Ref SGLoadBalancer
+        - !Ref SecurityGroupLoadBalancer
       Subnets:
-        - Fn::ImportValue: !Sub "${ProjectName}-Pub1SubNet"
-        - Fn::ImportValue: !Sub "${ProjectName}-Pub2SubNet"
+        - Fn::ImportValue: !Sub "${ProjectName}-PublicSubNet1"
+        - Fn::ImportValue: !Sub "${ProjectName}-PublicSubNet2"
       Tags:
         - Key: Name
           Value: !Sub "${ProjectName}-LoadBalancer"

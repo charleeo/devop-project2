@@ -220,18 +220,18 @@ Outputs:
     Description: List of the private subnets
     Value: !Join [",", [!Ref PrivateSubnet1, !Ref PrivateSubnet2]]
     Export:
-      Name: !Sub ${ProjectName}-PrivSubNets
+      Name: !Sub ${ProjectName}-PrivateSubNets
   PublicSubnet1:
     Description: A reference to the public subnet in the 1st Availability Zone
     Value: !Ref PublicSubnet1
     Export:
-      Name: !Sub ${ProjectName}-Pub1SubNet
+      Name: !Sub ${ProjectName}-PublicSubNet1
 
   PublicSubnet2:
     Description: A reference to the public subnet in the 2nd Availability Zone
     Value: !Ref PublicSubnet2
     Export:
-      Name: !Sub ${ProjectName}-Pub2SubNet
+      Name: !Sub ${ProjectName}-PublicSubNet2
 
   PrivateSubnet1:
     Description: A reference to the private subnet in the 1st Availability Zone
