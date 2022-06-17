@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: High availability web app deployment.
+Description: Charles Otaru Network stack Udagram-Udacity.
 Parameters:
   ProjectName:
-    Description: "Will be prefixed to all resources names."
+    Description: "This will be prefixed to all resources names."
     Type: String
   InstanceType:
     Description: EC2 istance type to launch.

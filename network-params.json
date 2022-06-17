@@ -1,7 +1,7 @@
 [
     {
       "ParameterKey": "ProjectName",
-      "ParameterValue": "HighAvailable-WebApp"
+      "ParameterValue": "Udagram-Udacity"
     },
     {
       "ParameterKey": "VpcCIDR",

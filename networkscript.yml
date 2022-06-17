@@ -1,11 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Charles Otaru Network stack for a high availability web app - udacity project2.
+Description: Charles Otaru Network stack Udagram-Udacity.
 Parameters:
   ProjectName:
-    Description: "Will be prefixed to all resources names."
+    Description: "This will be prefixed to all resources names."
     Type: String
-  VpcCIDR:
-    Description: Ip range for the VPC (CIDR notation)
+  VpcCIDRBlock:
+    Description: Ip range for the VPC (CIDRBlock notation)
     Type: String
   PublicSubnet1CIDRBlock:
     Description: Ip range for the public subnet in the first Availability Zone
@@ -19,18 +19,19 @@ Parameters:
   PrivateSubnet2CIDRBlock:
     Description: Ip range for the private subnet in the second Availability Zone
     Type: String
+
 Resources:
-  # DEFINING THE WEB APP VIRTUAL PRIVATE CLOUD
-  ProjectVPC:
+# THE VPC DEFINITION
+  UdagramUdacityVPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: !Ref VpcCIDR
+      CidrBlock: !Ref VpcCIDRBlock
       EnableDnsHostnames: true
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName}-VPC
   
-  # DEFINING THE INTERNET GATEWAY FOR THE VPC
+  #INTERNET GATEWAY FOR THE VPC
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -42,9 +43,9 @@ Resources:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       InternetGatewayId: !Ref InternetGateway
-      VpcId: !Ref ProjectVPC
+      VpcId: !Ref UdagramUdacityVPC
   
-  # DEFINING THE PUBLIC/PRIVATE SUBNETS STRUCTURE
+  #PUBLIC/PRIVATE SUBNETS STRUCTURE
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -54,7 +55,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName} - PublicSubnet AV1
-      VpcId: !Ref ProjectVPC
+      VpcId: !Ref UdagramUdacityVPC
   
   PublicSubnet2:
     Type: AWS::EC2::Subnet
@@ -65,7 +66,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName} - PublicSubnet AV2
-      VpcId: !Ref ProjectVPC
+      VpcId: !Ref UdagramUdacityVPC
   
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
@@ -76,7 +77,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName} - PrivateSubnet AV1
-      VpcId: !Ref ProjectVPC
+      VpcId: !Ref UdagramUdacityVPC
   
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
@@ -87,7 +88,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName} - PrivateSubnet AV2
-      VpcId: !Ref ProjectVPC
+      VpcId: !Ref UdagramUdacityVPC
 
   # DEFINING NatGateways
   NatGateway1EIP:
@@ -134,7 +135,7 @@ Resources:
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref ProjectVPC
+      VpcId: !Ref UdagramUdacityVPC
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName} - Public RouteTable
@@ -162,7 +163,7 @@ Resources:
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref ProjectVPC
+      VpcId: !Ref UdagramUdacityVPC
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName} - Private RouteTable for AZ1
@@ -170,7 +171,7 @@ Resources:
   PrivateRouteTable2:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref ProjectVPC
+      VpcId: !Ref UdagramUdacityVPC
       Tags:
         - Key: Name
           Value: !Sub ${ProjectName} - Private RouteTable for AZ2
@@ -202,11 +203,12 @@ Resources:
     Properties:
       RouteTableId: !Ref PrivateRouteTable2
       SubnetId: !Ref PrivateSubnet2
-# SCRIPT OUTPUTS
+
+###############################################################################
 Outputs:
   VPC:
     Description: the created vpc
-    Value: !Ref ProjectVPC
+    Value: !Ref UdagramUdacityVPC
     Export:
       Name: !Sub ${ProjectName}-VpcId
   PublicSubnets:
